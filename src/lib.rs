@@ -5,6 +5,7 @@ use tantivy::query::QueryParser;
 use tantivy::{Index, IndexWriter, Document};
 use tantivy::schema::{SchemaBuilder, TEXT, STORED, STRING};
 
+
 pub fn read_pdf(pdf_file: &str) -> String {
     // Open the PDF file
     let file: Vec<u8> = std::fs::read(pdf_file).unwrap_or_else(|err| {

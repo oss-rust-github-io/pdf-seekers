@@ -1,2 +1,2 @@
 # pdf-seekers
-Powerful parser and information extractor from PDF documents with keyword search functionality (powered by Rust)
+Simple parser and information extractor from PDF documents based on keyword search functionality (powered by Rust)
