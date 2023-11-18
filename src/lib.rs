@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use lopdf::Document as lopdoc;
 use itertools::Itertools;
 use tantivy::collector::TopDocs;
@@ -5,6 +6,32 @@ use tantivy::query::QueryParser;
 use tantivy::{Index, IndexWriter, Document};
 use tantivy::schema::{SchemaBuilder, TEXT, STORED, STRING};
 
+
+#[derive(Debug)]
+pub struct PDFMetadata {
+    num_pages: usize,
+    matched_page_nums: Vec<u32>,
+    cropped_texts: Vec<String>
+}
+
+impl PDFMetadata {
+    pub fn new(num_pages: usize, matched_page_nums: Vec<u32>, cropped_texts: Vec<String>) -> PDFMetadata {
+        PDFMetadata {
+            num_pages,
+            matched_page_nums,
+            cropped_texts
+        }
+    }
+
+    pub fn show(&self) {
+        println!("Number of pages: {}", self.num_pages);
+        println!("Search Term: \n");
+
+        for (idx, page) in self.matched_page_nums.iter().enumerate(){
+            println!("   Page: {} \nExtracted Text: {}\n", page, self.cropped_texts[idx]);
+        }
+    }
+}
 
 pub fn read_pdf(pdf_file: &str) -> String {
     // Open the PDF file
@@ -133,12 +160,13 @@ pub fn search_keyword(index: &Index, query_str: &str) -> Vec<String> {
     return matched_docs
 }
 
-pub fn run_analysis(file: &String, keyword: &str) -> (usize, Vec<u32>, Vec<String>) {
-    let doc = lopdoc::load(file).unwrap_or_else(|err| {
+pub fn run_analysis(file: &String, keyword: &str) -> HashMap<String, PDFMetadata> {
+    let doc = lopdoc::load(&file).unwrap_or_else(|err| {
         panic!("{} - Failed to retrieve number of pages in PDF document", err);
     });
 
     let pages = doc.get_pages();
+    let mut file_metadata: HashMap<String, PDFMetadata> = HashMap::new();
     let num_pages: usize = pages.len();
     let mut matched_page_nums: Vec<u32> = Vec::new();
     let mut cropped_texts: Vec<String> = Vec::new();
@@ -164,5 +192,7 @@ pub fn run_analysis(file: &String, keyword: &str) -> (usize, Vec<u32>, Vec<Strin
         }
     }
 
-    return (num_pages, matched_page_nums, cropped_texts)
+    file_metadata.insert(file.clone(), PDFMetadata::new(num_pages, matched_page_nums, cropped_texts));
+
+    return file_metadata
 }
