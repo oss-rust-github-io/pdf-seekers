@@ -66,6 +66,6 @@ fn main() {
 
     // Search for provided keyword
     if &args.action == "search" {
-        search_term_in_file(&args.index_path, &search_term);
+        search_term_in_file(&args.file_or_directory, &args.index_path, &search_term);
     }
 }
