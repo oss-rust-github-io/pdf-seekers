@@ -1,3 +1,5 @@
+pub mod error;
+use error::{FileOperationsError, IndexingError};
 use lopdf::Document as lopdoc;
 use itertools::Itertools;
 use tantivy::collector::TopDocs;
@@ -32,35 +34,40 @@ impl PDFMetadata {
     }
 }
 
-pub fn read_pdf(pdf_file: &str) -> String {
+pub fn read_pdf(pdf_file: &str) -> Result<String, error::FileOperationsError> {
     // Open the PDF file
-    let file: Vec<u8> = std::fs::read(pdf_file).unwrap_or_else(|err| {
-        panic!("{} - Unable to open PDF file", err);
-    });
+    let file: Vec<u8>= match std::fs::read(pdf_file) {
+        Ok(s) => s,
+        Err(e) => return Err(FileOperationsError::FileOpenError(pdf_file.to_string(), e))
+    };
     
     // Extract text from the PDF
-    let text: String = pdf_extract::extract_text_from_mem(&file).unwrap_or_else(|err| {
-        panic!("{} - Unable to read contents of PDF file", err);
-    });
+    let text: String = match pdf_extract::extract_text_from_mem(&file) {
+        Ok(s) => s,
+        Err(e) => return Err(FileOperationsError::FileReadError(pdf_file.to_string(), e))
+    };
 
-    return text
+    Ok(text)
 }
 
-pub fn create_or_open_index(index_path: &str) -> Index {
-    std::fs::create_dir_all(index_path).unwrap_or_else(|err| {
-        panic!("{} - Unable to create folder to store index", err);
-    });
+pub fn create_or_open_index(index_path: &str) -> Result<Index, IndexingError> {
+    match std::fs::create_dir_all(index_path) {
+        Ok(_) => {},
+        Err(e) => return Err(IndexingError::IndexDirectoryCreateError(index_path.to_string(), e))
+    };
 
-    let dir_content = std::fs::read_dir(index_path).unwrap_or_else(|err| {
-        panic!("{} - Unable to open folder to read contents", err);
-    });
+    let dir_content = match std::fs::read_dir(index_path) {
+        Ok(s) => s,
+        Err(e) => return Err(IndexingError::IndexDirectoryReadError(index_path.to_string(), e))
+    };
 
     let dir_check: bool = dir_content.count() == 0;
 
     let index: Index = if !dir_check {
-        Index::open_in_dir(index_path).unwrap_or_else(|err| {
-            panic!("{} - Unable to read index in existing folder", err);
-        })
+        match Index::open_in_dir(index_path) {
+            Ok(s) => s,
+            Err(e) => return Err(IndexingError::IndexDirectoryOpenError(index_path.to_string(), e))
+        }
     } else {
         let mut schema_builder: SchemaBuilder = SchemaBuilder::new();
 
@@ -68,18 +75,19 @@ pub fn create_or_open_index(index_path: &str) -> Index {
         schema_builder.add_text_field("content", TEXT | STORED);
         schema_builder.add_text_field("path", STRING | STORED);
 
-        let index: Index = Index::builder()
+        let index: Index = match Index::builder()
             .schema(schema_builder.build())
-            .create_in_dir(index_path).unwrap_or_else(|err| {
-            panic!("{} - Failed to create directory for index writer", err);
-        });
+            .create_in_dir(index_path) {
+                Ok(s) => s,
+                Err(e) => return Err(IndexingError::IndexCreateError(index_path.to_string(), e))
+            };
 
         // Set up the index writer
-        let index_writer: IndexWriter = index
-            .writer(50_000_000) // 50MB heap size for indexing
-            .unwrap_or_else(|err| {
-                panic!("{} - Failed to create index writer", err);
-            });
+        let index_writer: IndexWriter = match index
+            .writer(50_000_000) { // 50MB heap size for indexing
+                Ok(s) => s,
+                Err(e) => return Err(IndexingError::IndexWriterCreateError(e))
+            };
 
         // Close the index writer
         drop(index_writer);
@@ -87,7 +95,7 @@ pub fn create_or_open_index(index_path: &str) -> Index {
         index
     };
 
-    return index
+    Ok(index)
 }
 
 pub fn parse_and_index_pdf(pdf_file: &str, pdf_text: String, index: &Index) {
@@ -224,10 +232,22 @@ fn get_files_in_directory(directory: &str) -> Vec<String> {
 
 fn file_indexing(file_path: &str, index_path: &str) {
     // Read text in PDF file
-    let pdf_text:String = read_pdf(file_path);
+    let pdf_text:String = match read_pdf(file_path) {
+        Ok(s) => s,
+        Err(err) => {
+            eprintln!("{}", err);
+            std::process::exit(1);
+        }
+    };
 
     // Create or open the Tantivy index
-    let index: tantivy::Index = create_or_open_index(index_path);
+    let index: tantivy::Index = match create_or_open_index(index_path) {
+        Ok(s) => s,
+        Err(err) => {
+            eprintln!("{}", err);
+            std::process::exit(1);
+        }
+    };
 
     // Parse PDF and index content
     parse_and_index_pdf(file_path, pdf_text, &index);
@@ -254,7 +274,13 @@ pub fn indexing_contents(file_or_directory: &str, index_path: &str) {
 
 pub fn search_term_in_file(index_path: &str, search_term: &String) {
     // Create or open the Tantivy index
-    let index: tantivy::Index = create_or_open_index(index_path);
+    let index: tantivy::Index = match create_or_open_index(index_path) {
+        Ok(s) => s,
+        Err(err) => {
+            eprintln!("{}", err);
+            std::process::exit(1);
+        }
+    };
 
     // Search for a term in the indexed PDFs
     let matched_docs: Vec<String> = search_keyword(&index, search_term);
