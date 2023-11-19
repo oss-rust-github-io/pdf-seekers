@@ -14,15 +14,15 @@ impl Display for FileOperationsError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             FileOperationsError::FileOpenError(file_name, err) => 
-                write!(f, "[{}] [ERROR] FO0001 - {}: {}", Utc::now(), file_name, err),
+                write!(f, "[{}] [ERROR] [FO0001_FileOpenError] {}: {}", Utc::now(), file_name, err),
             FileOperationsError::FileReadError(file_name, err) => 
-                write!(f, "[{}] [ERROR] FO0002 - {}: {}", Utc::now(), file_name, err),
+                write!(f, "[{}] [ERROR] [FO0002_FileReadError] {}: {}", Utc::now(), file_name, err),
             FileOperationsError::PDFFileReadError(file_name, err) => 
-                write!(f, "[{}] [ERROR] FO0003 - {}: {}", Utc::now(), file_name, err),
+                write!(f, "[{}] [ERROR] [FO0003_PDFFileReadError] {}: {}", Utc::now(), file_name, err),
             FileOperationsError::PDFFileTextExtractionError(file_name, page_num, err) => 
-                write!(f, "[{}] [ERROR] FO0004 - {}: Page-{} {}", Utc::now(), file_name, page_num, err),
+                write!(f, "[{}] [ERROR] [FO0004_PDFFileTextExtractionError] {}: Page-{} {}", Utc::now(), file_name, page_num, err),
             FileOperationsError::DirectoryReadError(dir_path, err) => 
-                write!(f, "[{}] [ERROR] FO0005 - {}: {}", Utc::now(), dir_path, err),
+                write!(f, "[{}] [ERROR] [FO0005_DirectoryReadError] {}: {}", Utc::now(), dir_path, err),
         }
     }
 }
@@ -43,21 +43,21 @@ impl Display for IndexingError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             IndexingError::IndexDirectoryOpenError(dir_path, err) => 
-                write!(f, "[{}] [ERROR] IE0001 - {}: {}", Utc::now(), dir_path, err),
+                write!(f, "[{}] [ERROR] [IE0001_IndexDirectoryOpenError] {}: {}", Utc::now(), dir_path, err),
             IndexingError::IndexDirectoryReadError(dir_path, err) => 
-                write!(f, "[{}] [ERROR] IE0002 - {}: {}", Utc::now(), dir_path, err),
+                write!(f, "[{}] [ERROR] [IE0002_IndexDirectoryReadError] {}: {}", Utc::now(), dir_path, err),
             IndexingError::IndexDirectoryCreateError(dir_path, err) => 
-                write!(f, "[{}] [ERROR] IE0003 - {}: {}", Utc::now(), dir_path, err),
+                write!(f, "[{}] [ERROR] [IE0003_IndexDirectoryCreateError] {}: {}", Utc::now(), dir_path, err),
             IndexingError::IndexCreateError(dir_path, err) => 
-                write!(f, "[{}] [ERROR] IE0004 - {}: {}", Utc::now(), dir_path, err),
+                write!(f, "[{}] [ERROR] [IE0004_IndexCreateError] {}: {}", Utc::now(), dir_path, err),
             IndexingError::IndexWriterCreateError(err) => 
-                write!(f, "[{}] [ERROR] IE0005 - {}", Utc::now(), err),
+                write!(f, "[{}] [ERROR] [IE0005_IndexWriterCreateError] {}", Utc::now(), err),
             IndexingError::IndexFieldNotFound(field_name, err) => 
-                write!(f, "[{}] [ERROR] IE0006 - {}: {}", Utc::now(), field_name, err),
+                write!(f, "[{}] [ERROR] [IE0006_IndexFieldNotFound] {}: {}", Utc::now(), field_name, err),
             IndexingError::IndexDocumentAddError(err) => 
-                write!(f, "[{}] [ERROR] IE0007 - {}", Utc::now(), err),
+                write!(f, "[{}] [ERROR] [IE0007_IndexDocumentAddError] {}", Utc::now(), err),
             IndexingError::IndexDocumentCommitError(err) => 
-                write!(f, "[{}] [ERROR] IE0008 - {}", Utc::now(), err),
+                write!(f, "[{}] [ERROR] [IE0008_IndexDocumentCommitError] {}", Utc::now(), err),
         }
     }
 }
@@ -75,15 +75,15 @@ impl Display for SearchingError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             SearchingError::IndexReaderCreateError(err) => 
-                write!(f, "[{}] [ERROR] SE0001 - {}", Utc::now(), err),
+                write!(f, "[{}] [ERROR] [SE0001_IndexReaderCreateError] {}", Utc::now(), err),
             SearchingError::IndexFieldNotFound(field_name, err) => 
-                write!(f, "[{}] [ERROR] SE0002 - {} - {}", Utc::now(), field_name, err),
+                write!(f, "[{}] [ERROR] [SE0002_IndexFieldNotFound] {} - {}", Utc::now(), field_name, err),
             SearchingError::QueryParserError(err) => 
-                write!(f, "[{}] [ERROR] SE0003 - {}", Utc::now(), err),
+                write!(f, "[{}] [ERROR] [SE0003_QueryParserError] {}", Utc::now(), err),
             SearchingError::KeywordSearchError(err) => 
-                write!(f, "[{}] [ERROR] SE0004 - {}", Utc::now(), err),
+                write!(f, "[{}] [ERROR] [SE0004_KeywordSearchError] {}", Utc::now(), err),
             SearchingError::SearcherDocumentFetchError(err) => 
-                write!(f, "[{}] [ERROR] SE0005 - {}", Utc::now(), err),
+                write!(f, "[{}] [ERROR] [SE0005_SearcherDocumentFetchError] {}", Utc::now(), err),
         }
     }
 }
