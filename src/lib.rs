@@ -17,6 +17,7 @@ pub mod search_operations;
 use file_operations::*;
 use index_operations::*;
 use search_operations::*;
+use chrono::prelude::Utc;
 
 /// Create indexes for either single PDF file or directory containing multiple PDF files
 /// 
@@ -40,13 +41,13 @@ pub fn indexing_contents(file_or_directory: &str, index_path: &str) {
         // Run indexing on all files in directory
         for file in &files_list {
             file_indexing(&file, index_path);
-            println!("{} - Indexing completed.", file);
+            println!("[{}] [INFO] {} - Indexing completed.", Utc::now(), file);
         }
     }
     else {
         // Run indexing on single file
         file_indexing(file_or_directory, index_path);
-        println!("{} - Indexing completed.", file_or_directory);
+        println!("[{}] [INFO] {} - Indexing completed.", Utc::now(), file_or_directory);
     }
 }
 
@@ -100,7 +101,7 @@ pub fn search_term_in_file(file_or_directory: &str, index_path: &str, search_ter
                         std::process::exit(1);
                     }
                 };
-                println!("File Name: {}", &doc);
+                println!("[{}] [INFO] File Name: {}", Utc::now(), &doc);
                 metadata.show();
             }
         }

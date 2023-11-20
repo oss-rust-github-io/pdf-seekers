@@ -7,6 +7,7 @@
 use crate::error::{FileOperationsError, SearchingError};
 use lopdf::Document as lopdoc;
 use itertools::Itertools;
+use chrono::prelude::Utc;
 use tantivy::collector::TopDocs;
 use tantivy::query::QueryParser;
 
@@ -33,11 +34,12 @@ impl PDFMetadata {
 
     /// Displays the metadata information based on search performed on PDF files
     pub fn show(&self) {
-        println!("Number of pages: {}", self.num_pages);
-        println!("Search Term: \n");
+        println!("[{}] [INFO] Number of pages: {}", Utc::now(), self.num_pages);
+        println!("[{}] [INFO] Search Term:", Utc::now());
 
         for (idx, page) in self.matched_page_nums.iter().enumerate(){
-            println!("   Page: {} \nExtracted Text: {}\n", page, self.cropped_texts[idx]);
+            println!("[{}] [INFO] Page: {}", Utc::now(), page);
+            println!("[{}] [INFO] Extracted Text: {}", Utc::now(), self.cropped_texts[idx]);
         }
     }
 }
