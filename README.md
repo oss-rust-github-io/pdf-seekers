@@ -37,6 +37,7 @@ Visit the [PDF Seeker official repository](https://github.com/oss-rust-github-io
 ## Examples
 
 - **Indexing Command**
+
 `$ cargo run -- -a index -i index_dir -f data`
 
 <p align="left">
@@ -48,7 +49,8 @@ Visit the [PDF Seeker official repository](https://github.com/oss-rust-github-io
 </p>
 
 - **Search Command**
-`cargo run -- -a search -i index_dir -f data -s convolutional`
+
+`$ cargo run -- -a search -i index_dir -f data -s convolutional`
 
 <p align="left">
 <img
