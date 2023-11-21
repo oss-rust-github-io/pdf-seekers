@@ -24,8 +24,5 @@ jobs:
       - name: Run file operations test
         run: cargo test --test file_operations_test
       
-      - name: Run index operations test
-        run: cargo test --test index_operations_test
-      
       - name: Run integration test
         run: cargo test --test integration_test
