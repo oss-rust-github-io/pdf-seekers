@@ -1,0 +1,23 @@
+[package]
+name = "pdf_seekers"
+version = "0.1.1"
+edition = "2021"
+authors = ["Tapas Das <dlaststark@gmail.com>"]
+description = "Simple parser and information extractor from PDF documents based on keyword search functionality (powered by Rust)"
+readme = "README.md"
+repository = "https://github.com/oss-rust-github-io/pdf-seekers.git"
+license = "MIT OR Apache-2.0"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+name = "pypdf_seekers"
+crate-type = ["cdylib"]
+
+[dependencies]
+chrono = "0.4.17"
+clap = { version = "4.4.8", features = ["derive"] }
+itertools = "0.12.0"
+lopdf = { version = "0.31.0", features = ["pom", "pom_parser"] }
+pyo3 = { version = "0.20.0", features = ["extension-module"] }
+pdf-extract = "0.7.2"
+tantivy = "0.21.1"

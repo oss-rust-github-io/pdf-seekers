@@ -10,18 +10,26 @@ use itertools::Itertools;
 use chrono::prelude::Utc;
 use tantivy::collector::TopDocs;
 use tantivy::query::QueryParser;
+use pyo3::prelude::*;
 
+#[pyclass]
 #[derive(Debug)]
 /// Defines the metadata for extracted information from PDF files
 pub struct PDFMetadata {
+    #[pyo3(get)]
     /// Number of pages in the PDF file
     pub num_pages: usize,
+
+    #[pyo3(get)]
     /// Matched page numbers containing the search term
     pub matched_page_nums: Vec<u32>,
+    
+    #[pyo3(get)]
     /// Surrounding texts around the search term
     pub cropped_texts: Vec<String>
 }
 
+#[pymethods]
 impl PDFMetadata {
     /// Displays the metadata information based on search performed on PDF files
     pub fn show(&self) {
