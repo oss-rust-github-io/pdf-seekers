@@ -24,7 +24,7 @@ use chrono::prelude::Utc;
 /// ## Input Parameters
 /// - `file_or_directory` defines the input path for single PDF file or directory containing multiple PDF files
 /// - `index_path` defines the input path for storing the indexed files
-pub fn indexing_contents(file_or_directory: &str, index_path: &str) {
+pub fn indexing_contents(file_or_directory: &str, index_path: &str) -> Result<(), std::io::Error> {
     // Check if indexing to be performed on single file or directory of files
     let dir_flag: bool = check_if_directory(file_or_directory);
 
@@ -49,6 +49,8 @@ pub fn indexing_contents(file_or_directory: &str, index_path: &str) {
         file_indexing(file_or_directory, index_path);
         println!("[{}] [INFO] {} - Indexing completed.", Utc::now(), file_or_directory);
     }
+
+    Ok(())
 }
 
 /// Search for a keyword in either single PDF file or directory containing multiple PDF files
@@ -57,7 +59,7 @@ pub fn indexing_contents(file_or_directory: &str, index_path: &str) {
 /// - `file_or_directory` defines the input path for single PDF file or directory containing multiple PDF files
 /// - `index_path` defines the input path for storing the indexed files
 /// - `search_term` defines the keyword to be searched in PDF documents
-pub fn search_term_in_file(file_or_directory: &str, index_path: &str, search_term: &String) {
+pub fn search_term_in_file(file_or_directory: &str, index_path: &str, search_term: &String) -> Result<Vec<PDFMetadata>, std::io::Error> {
     // Check if indexing to be performed on single file or directory of files
     let dir_flag: bool = check_if_directory(file_or_directory);
     
@@ -80,6 +82,7 @@ pub fn search_term_in_file(file_or_directory: &str, index_path: &str, search_ter
     };
 
     // Run analysis on PDF documents containing the search term
+    let mut metadata_vec: Vec<PDFMetadata> = Vec::new();
     if dir_flag {
         // Get all file names in directory
         let files_list = match get_files_in_directory(file_or_directory) {
@@ -102,7 +105,7 @@ pub fn search_term_in_file(file_or_directory: &str, index_path: &str, search_ter
                     }
                 };
                 println!("[{}] [INFO] File Name: {}", Utc::now(), &doc);
-                metadata.show();
+                metadata_vec.push(metadata);
             }
         }
     }
@@ -122,7 +125,7 @@ pub fn search_term_in_file(file_or_directory: &str, index_path: &str, search_ter
 
                 match_doc_flag = true;
                 println!("File Name: {}", &doc);
-                metadata.show();
+                metadata_vec.push(metadata);
                 
                 break;
             }
@@ -132,4 +135,6 @@ pub fn search_term_in_file(file_or_directory: &str, index_path: &str, search_ter
             println!("No matching documents founds.")
         }
     }
+
+    Ok(metadata_vec)
 }
