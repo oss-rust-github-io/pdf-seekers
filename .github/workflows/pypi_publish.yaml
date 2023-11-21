@@ -10,12 +10,12 @@ permissions:
     contents: read
 
 jobs:
-  build_package:
+  build_package_for_linux:
     if: ${{ github.event.pull_request.merged }}
     runs-on: ubuntu-latest
     strategy:
         matrix:
-          target: [x86_64, x86, aarch64, armv7, s390x, ppc64le]
+          target: [x86, aarch64, armv7]
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -39,9 +39,66 @@ jobs:
           name: wheels
           path: dist
   
+  build_package_for_windows:
+    if: ${{ github.event.pull_request.merged }}
+    runs-on: windows-latest
+    strategy:
+        matrix:
+          target: [x64, x86]
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+      
+      - name: Setup python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          architecture: ${{ matrix.target }}
+        
+      - name: Build wheels
+        uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.target }}
+          args: --release --out dist --find-interpreter --manifest-path pypdf_seekers/Cargo.toml
+          sccache: 'true'
+      
+      - name: Upload wheels
+        uses: actions/upload-artifact@v3
+        with:
+          name: wheels
+          path: dist
+
+  build_package_for_macos:
+    if: ${{ github.event.pull_request.merged }}
+    runs-on: macos-latest
+    strategy:
+        matrix:
+          target: [x86_64, aarch64]
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+      
+      - name: Setup python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+        
+      - name: Build wheels
+        uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.target }}
+          args: --release --out dist --find-interpreter --manifest-path pypdf_seekers/Cargo.toml
+          sccache: 'true'
+      
+      - name: Upload wheels
+        uses: actions/upload-artifact@v3
+        with:
+          name: wheels
+          path: dist
+  
   publish_to_pypi:
     if: ${{ github.event.pull_request.merged }}
-    needs: build_package
+    needs: [build_package_for_linux, build_package_for_windows, build_package_for_macos]
     runs-on: ubuntu-latest
     steps:
       - name: Download wheels
