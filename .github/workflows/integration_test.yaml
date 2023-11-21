@@ -1,4 +1,4 @@
-name: Rust Crate Publish
+name: Unit and Integration Testing
 
 on:
   pull_request:
