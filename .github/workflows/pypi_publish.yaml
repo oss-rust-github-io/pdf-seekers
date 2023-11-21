@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
         matrix:
-          target: [x86, aarch64, armv7]
+          target: [x86, armv7]
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
