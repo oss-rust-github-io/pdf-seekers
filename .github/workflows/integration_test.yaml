@@ -7,12 +7,12 @@ on:
     types: [closed]
 
 jobs:
-  publish_crate:
+  unit_and_integration_test:
     if: ${{ github.event.pull_request.merged }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout source code
-        uses: actions/checkout@test
+        uses: actions/checkout@v4
 
       - name: Install stable toolchain
         uses: actions-rs/toolchain@v1
