@@ -61,11 +61,15 @@ fn main() {
 
     // Indexing the PDF files
     if &args.action == "index" {
-        indexing_contents(&args.file_or_directory, &args.index_path);
+        indexing_contents(&args.file_or_directory, &args.index_path).unwrap();
     }
 
     // Search for provided keyword
     if &args.action == "search" {
-        search_term_in_file(&args.file_or_directory, &args.index_path, &search_term);
+        let metadata_vec = search_term_in_file(&args.file_or_directory, &args.index_path, &search_term).unwrap();
+
+        for element in metadata_vec {
+            element.show();
+        }
     }
 }
