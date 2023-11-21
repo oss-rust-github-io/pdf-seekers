@@ -21,8 +21,8 @@ jobs:
           toolchain: stable
           override: true
         
-      - name: Run file operations test
-        run: cargo test --test file_operations_test
+      - name: Run unit tests
+        run: cargo test --test unit_test
       
       - name: Run integration test
         run: cargo test --test integration_test
