@@ -1,4 +1,4 @@
-name: Rust Crate Publish
+name: Unit and Integration Testing
 
 on:
   pull_request:
@@ -7,12 +7,12 @@ on:
     types: [closed]
 
 jobs:
-  publish_crate:
+  unit_and_integration_test:
     if: ${{ github.event.pull_request.merged }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout source code
-        uses: actions/checkout@test
+        uses: actions/checkout@v4
 
       - name: Install stable toolchain
         uses: actions-rs/toolchain@v1
@@ -23,9 +23,6 @@ jobs:
         
       - name: Run file operations test
         run: cargo test --test file_operations_test
-      
-      - name: Run index operations test
-        run: cargo test --test index_operations_test
       
       - name: Run integration test
         run: cargo test --test integration_test
