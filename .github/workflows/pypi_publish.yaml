@@ -41,6 +41,7 @@ jobs:
   
   publish_to_pypi:
     if: ${{ github.event.pull_request.merged }}
+    needs: build_package
     runs-on: ubuntu-latest
     steps:
       - name: Download wheels
