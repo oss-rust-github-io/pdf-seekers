@@ -1,2 +1,4 @@
 /target
 /index_dir
+/.venv
+/.vscode

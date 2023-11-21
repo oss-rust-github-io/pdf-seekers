@@ -23,15 +23,6 @@ pub struct PDFMetadata {
 }
 
 impl PDFMetadata {
-    /// Constructor for building the `PDFMetadata` struct
-    pub fn new(num_pages: usize, matched_page_nums: Vec<u32>, cropped_texts: Vec<String>) -> PDFMetadata {
-        PDFMetadata {
-            num_pages,
-            matched_page_nums,
-            cropped_texts
-        }
-    }
-
     /// Displays the metadata information based on search performed on PDF files
     pub fn show(&self) {
         println!("[{}] [INFO] Number of pages: {}", Utc::now(), self.num_pages);
@@ -154,5 +145,9 @@ pub fn run_analysis(file: &String, keyword: &str) -> Result<PDFMetadata, FileOpe
         }
     }
 
-    Ok(PDFMetadata::new(num_pages, matched_page_nums, cropped_texts))
+    Ok(PDFMetadata{
+        num_pages, 
+        matched_page_nums, 
+        cropped_texts
+    })
 }
