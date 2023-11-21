@@ -15,11 +15,11 @@ use tantivy::query::QueryParser;
 /// Defines the metadata for extracted information from PDF files
 pub struct PDFMetadata {
     /// Number of pages in the PDF file
-    num_pages: usize,
+    pub num_pages: usize,
     /// Matched page numbers containing the search term
-    matched_page_nums: Vec<u32>,
+    pub matched_page_nums: Vec<u32>,
     /// Surrounding texts around the search term
-    cropped_texts: Vec<String>
+    pub cropped_texts: Vec<String>
 }
 
 impl PDFMetadata {
