@@ -6,14 +6,15 @@
 
 use crate::error::{FileOperationsError, SearchingError};
 use lopdf::Document as lopdoc;
-use itertools::Itertools;
-use chrono::prelude::Utc;
+use std::collections::HashMap;
 use tantivy::collector::TopDocs;
 use tantivy::query::QueryParser;
 
 #[derive(Debug)]
 /// Defines the metadata for extracted information from PDF files
 pub struct PDFMetadata {
+    /// Name of the PDF file
+    pub doc_name: String,
     /// Number of pages in the PDF file
     pub num_pages: usize,
     /// Matched page numbers containing the search term
@@ -25,12 +26,13 @@ pub struct PDFMetadata {
 impl PDFMetadata {
     /// Displays the metadata information based on search performed on PDF files
     pub fn show(&self) {
-        println!("[{}] [INFO] Number of pages: {}", Utc::now(), self.num_pages);
-        println!("[{}] [INFO] Search Term:", Utc::now());
+        println!("==================================================");
+        println!("Document Name: {}", self.doc_name);
+        println!("Number of pages: {}", self.num_pages);
+        println!("Search Results:");
 
         for (idx, page) in self.matched_page_nums.iter().enumerate(){
-            println!("[{}] [INFO] Page: {}", Utc::now(), page);
-            println!("[{}] [INFO] Extracted Text: {}", Utc::now(), self.cropped_texts[idx]);
+            println!("[Page: {}] {}", page, self.cropped_texts[idx]);
         }
     }
 }
@@ -42,8 +44,8 @@ impl PDFMetadata {
 /// - `query_str` contains the keyword to be searched in PDF files
 /// 
 /// ## Returns
-/// - Vector containing matched PDF documents (containing the search term)
-pub fn search_keyword(index: &tantivy::Index, query_str: &str) -> Result<Vec<String>, SearchingError> {
+/// - Hashmap containing matched PDF documents and corresponding page numbers (containing the search term)
+pub fn search_keyword(index: &tantivy::Index, query_str: &str) -> Result<HashMap<String, Vec<String>>, SearchingError> {
     // Create the index reader object
     let indexer = match index.reader() {
         Ok(s) => s,
@@ -73,7 +75,8 @@ pub fn search_keyword(index: &tantivy::Index, query_str: &str) -> Result<Vec<Str
     };
 
     // Capture search results
-    let mut matched_docs: Vec<String> = Vec::new();
+    let mut doc_page_map: HashMap<String, Vec<String>> = HashMap::new();
+
     for (_score, doc_address) in top_docs {
         let retrieved_doc = match searcher.doc(doc_address) {
             Ok(s) => s,
@@ -85,30 +88,41 @@ pub fn search_keyword(index: &tantivy::Index, query_str: &str) -> Result<Vec<Str
             Err(e) => return Err(SearchingError::IndexFieldNotFound(String::from("path"), e))
         };
 
-        let path_value = retrieved_doc
+        let page_num_field = match index.schema().get_field("page_num") {
+            Ok(s) => s,
+            Err(e) => return Err(SearchingError::IndexFieldNotFound(String::from("page_num"), e))
+        };
+
+        let doc_name = retrieved_doc
             .get_first(path_field)
             .and_then(|v| v.as_text())
             .unwrap_or_default()
             .to_string();
 
-        matched_docs.push(path_value);
+        let mut page_num: Vec<String> = Vec::new();
+        for item in retrieved_doc.get_all(page_num_field) {
+            page_num.push(item.as_text().unwrap().to_string());
+        }
+        
+        doc_page_map.insert(doc_name, page_num);
     }
-
-    let matched_docs: Vec<String> = matched_docs.into_iter().unique().collect();
-    Ok(matched_docs)
+    
+    Ok(doc_page_map)
 }
 
 /// Captures metadata information from PDF files based on search term provided
 /// 
 /// ## Input Parameters
 /// - `file` contains the PDF file for information extration
+/// - 
 /// - `keyword` contains the search term for extracting metadata information
+/// - `page_num` contains the matched page numbers in PDF document containing the search term
 /// 
 /// ## Returns
 /// - `PDFMetadata` struct containing captured metadata information for matched PDF files (containing the search term)
-pub fn run_analysis(file: &String, keyword: &str) -> Result<PDFMetadata, FileOperationsError> {
+pub fn run_analysis(file: &String, page_num: &Vec<String>, keyword: &str) -> Result<PDFMetadata, FileOperationsError> {
     // Read the PDF file
-    let doc = match lopdoc::load(&file) {
+    let doc = match lopdoc::load(file) {
         Ok(s) => s,
         Err(e) => return Err(FileOperationsError::PDFFileReadError(file.clone(), e))
     };
@@ -119,19 +133,18 @@ pub fn run_analysis(file: &String, keyword: &str) -> Result<PDFMetadata, FileOpe
     let mut matched_page_nums: Vec<u32> = Vec::new();
     let mut cropped_texts: Vec<String> = Vec::new();
 
-    // Traverse through the PDF pages to extract metadata
-    for (i, _) in pages.iter().enumerate() {
-        let page_number: u32 = (i + 1) as u32;
+    for item in page_num {
+        let p_num: u32 = item.trim().parse::<u32>().unwrap();
 
-        // Extract text from a single PDF page
-        let text: String = match doc.extract_text(&[page_number]) {
+        // Extract text from matched PDF pages containing the search term
+        let text: String = match doc.extract_text(&[p_num]) {
             Ok(s) => s,
-            Err(e) => return Err(FileOperationsError::PDFFileTextExtractionError(file.clone(), page_number, e))
+            Err(e) => return Err(FileOperationsError::PDFFileTextExtractionError(file.clone(), p_num, e))
         };
-        
+
         // Extract surrounding text around the search term
         if text.contains(keyword) {
-            matched_page_nums.push(page_number);
+            matched_page_nums.push(p_num);
 
             let str_vec: Vec<&str> = text.split(' ').collect::<Vec<&str>>();
             let index: i32 = str_vec.iter().position(|&r| r == keyword).unwrap() as i32;
@@ -141,11 +154,13 @@ pub fn run_analysis(file: &String, keyword: &str) -> Result<PDFMetadata, FileOpe
 
             let cropped_vec: &[&str] = &str_vec[lower_bound as usize..upper_bound as usize];
             let cropped_text: String = cropped_vec.join(" ");
+
             cropped_texts.push(cropped_text)
         }
     }
 
     Ok(PDFMetadata{
+        doc_name: file.clone(),
         num_pages, 
         matched_page_nums, 
         cropped_texts
