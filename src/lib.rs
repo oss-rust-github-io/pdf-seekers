@@ -17,10 +17,10 @@ pub mod search_operations;
 use file_operations::*;
 use index_operations::*;
 use search_operations::*;
-use itertools::Itertools;
 
 use chrono::Datelike;
 use chrono::prelude::Utc;
+use itertools::Itertools;
 use std::collections::HashMap;
 
 /// Create indexes for either single PDF file or directory containing multiple PDF files
@@ -29,9 +29,9 @@ use std::collections::HashMap;
 /// - `file_or_directory` defines the input path for single PDF file or directory containing multiple PDF files
 /// - `cache_path` defines the input path for storing the indexed files, log files, and tracker files
 /// - `display_logs` defines the flag to indicate whether to display processing logs on screen or not
-pub fn indexing_contents(file_or_directory: &str, cache_path: &Option<String>, display_logs: &Option<bool>) -> Result<(), std::io::Error> {
+pub fn indexing_contents(file_or_directory: &str, cache_path: Option<String>, display_logs: Option<bool>) -> Result<(), std::io::Error> {
     // Get cache directory path
-    let cache_dir: String = match get_cache_dir(cache_path) {
+    let cache_dir: String = match get_cache_dir(&cache_path) {
         Ok(s) => s,
         Err(err) => {
             eprintln!("{}", err);
@@ -65,37 +65,37 @@ pub fn indexing_contents(file_or_directory: &str, cache_path: &Option<String>, d
     let log_file: String = format!("{}/pdf_seekers_{}_{}_{}.log", &log_path, dt.year(), dt.month(), dt.date_naive());
 
     let log_message: String = format!("[{}] \t[INFO] \t==================================================", Utc::now());
-    print_log_to_screen(display_logs, &log_message);
+    print_log_to_screen(&display_logs, &log_message);
     write_to_file(&log_file, log_message).unwrap();
 
     let log_message: String = format!("[{}] \t[INFO] \tIndexing Operation Logs", Utc::now());
-    print_log_to_screen(display_logs, &log_message);
+    print_log_to_screen(&display_logs, &log_message);
     write_to_file(&log_file, log_message).unwrap();
 
     let log_message: String = format!("[{}] \t[INFO] \t==================================================", Utc::now());
-    print_log_to_screen(display_logs, &log_message);
+    print_log_to_screen(&display_logs, &log_message);
     write_to_file(&log_file, log_message).unwrap();
 
     let log_message: String = format!("[{}] \t[INFO] \tInput Parameters:", Utc::now());
-    print_log_to_screen(display_logs, &log_message);
+    print_log_to_screen(&display_logs, &log_message);
     write_to_file(&log_file, log_message).unwrap();
 
     let log_message: String = format!("[{}] \t[INFO] \tfile_or_directory: {}", Utc::now(), &file_or_directory);
-    print_log_to_screen(display_logs, &log_message);
+    print_log_to_screen(&display_logs, &log_message);
     write_to_file(&log_file, log_message).unwrap();
     
     let log_message: String = format!("[{}] \t[INFO] \tcache_path: {:?}", Utc::now(), &cache_path);
-    print_log_to_screen(display_logs, &log_message);
+    print_log_to_screen(&display_logs, &log_message);
     write_to_file(&log_file, log_message).unwrap();
 
     let log_message: String = format!("[{}] \t[INFO] \tdisplay_logs: {:?}", Utc::now(), &display_logs);
-    print_log_to_screen(display_logs, &log_message);
+    print_log_to_screen(&display_logs, &log_message);
     write_to_file(&log_file, log_message).unwrap();
 
     // Check if indexing to be performed on single file or directory of files
     let dir_flag: bool = check_if_directory(file_or_directory);
     let log_message: String = format!("[{}] \t[DEBUG] \t{} - Directory Flag is {}", Utc::now(), file_or_directory, dir_flag);
-    print_log_to_screen(display_logs, &log_message);
+    print_log_to_screen(&display_logs, &log_message);
     write_to_file(&log_file, log_message).unwrap();
 
     if dir_flag {
@@ -103,7 +103,7 @@ pub fn indexing_contents(file_or_directory: &str, cache_path: &Option<String>, d
         let files_list: Vec<String> = match get_files_in_directory(file_or_directory) {
             Ok(s) => {
                 let log_message: String = format!("[{}] \t[INFO] \t{} - Read all file names successfully in directory {}", Utc::now(), file_or_directory, dir_flag);
-                print_log_to_screen(display_logs, &log_message);
+                print_log_to_screen(&display_logs, &log_message);
                 write_to_file(&log_file, log_message).unwrap();
                 s
             },
@@ -117,26 +117,26 @@ pub fn indexing_contents(file_or_directory: &str, cache_path: &Option<String>, d
         // Run indexing on all files in directory
         for file in &files_list {
             let log_message: String = format!("[{}] \t[INFO] \t{} - Indexing started...", Utc::now(), file);
-            print_log_to_screen(display_logs, &log_message);
+            print_log_to_screen(&display_logs, &log_message);
             write_to_file(&log_file, log_message).unwrap();
 
-            file_indexing(&file, &index_path[..], &log_file, display_logs);
+            file_indexing(&file, &index_path[..], &log_file, &display_logs);
 
             let log_message: String = format!("[{}] \t[INFO] \t{} - Indexing completed.", Utc::now(), file);
-            print_log_to_screen(display_logs, &log_message);
+            print_log_to_screen(&display_logs, &log_message);
             write_to_file(&log_file, log_message).unwrap();
         }
     }
     else {
         let log_message: String = format!("[{}] \t[INFO] \t{} - Indexing started...", Utc::now(), file_or_directory);
-        print_log_to_screen(display_logs, &log_message);
+        print_log_to_screen(&display_logs, &log_message);
         write_to_file(&log_file, log_message).unwrap();
         
         // Run indexing on single file
-        file_indexing(file_or_directory, &index_path[..], &log_file, display_logs);
+        file_indexing(file_or_directory, &index_path[..], &log_file, &display_logs);
 
         let log_message: String = format!("[{}] \t[INFO] \t{} - Indexing completed.", Utc::now(), file_or_directory);
-        print_log_to_screen(display_logs, &log_message);
+        print_log_to_screen(&display_logs, &log_message);
         write_to_file(&log_file, log_message).unwrap();
     }
 
@@ -150,9 +150,9 @@ pub fn indexing_contents(file_or_directory: &str, cache_path: &Option<String>, d
 /// - `search_term` defines the keyword to be searched in PDF documents
 /// - `cache_path` defines the input path for storing the indexed files, log files, and tracker files
 /// - `display_logs` defines the flag to indicate whether to display processing logs on screen or not
-pub fn search_term_in_file(file_or_directory: &str, search_term: &String, cache_path: &Option<String>, display_logs: &Option<bool>) -> Result<Vec<PDFMetadata>, std::io::Error> {
+pub fn search_term_in_file(file_or_directory: &str, search_term: String, cache_path: Option<String>, display_logs: Option<bool>) -> Result<Vec<PDFMetadata>, std::io::Error> {
     // Get cache directory path
-    let cache_dir: String = match get_cache_dir(cache_path) {
+    let cache_dir: String = match get_cache_dir(&cache_path) {
         Ok(s) => s,
         Err(err) => {
             eprintln!("{}", err);
@@ -186,48 +186,48 @@ pub fn search_term_in_file(file_or_directory: &str, search_term: &String, cache_
     let log_file: String = format!("{}/pdf_seekers_{}_{}_{}.log", &log_path, dt.year(), dt.month(), dt.date_naive());
 
     let log_message: String = format!("[{}] \t[INFO] \t==================================================", Utc::now());
-    print_log_to_screen(display_logs, &log_message);
+    print_log_to_screen(&display_logs, &log_message);
     write_to_file(&log_file, log_message).unwrap();
 
     let log_message: String = format!("[{}] \t[INFO] \tKeyword Search Operation Logs", Utc::now());
-    print_log_to_screen(display_logs, &log_message);
+    print_log_to_screen(&display_logs, &log_message);
     write_to_file(&log_file, log_message).unwrap();
 
     let log_message: String = format!("[{}] \t[INFO] \t==================================================", Utc::now());
-    print_log_to_screen(display_logs, &log_message);
+    print_log_to_screen(&display_logs, &log_message);
     write_to_file(&log_file, log_message).unwrap();
 
     let log_message: String = format!("[{}] \t[INFO] \tInput Parameters:", Utc::now());
-    print_log_to_screen(display_logs, &log_message);
+    print_log_to_screen(&display_logs, &log_message);
     write_to_file(&log_file, log_message).unwrap();
 
     let log_message: String = format!("[{}] \t[INFO] \tfile_or_directory: {}", Utc::now(), &file_or_directory);
-    print_log_to_screen(display_logs, &log_message);
+    print_log_to_screen(&display_logs, &log_message);
     write_to_file(&log_file, log_message).unwrap();
 
     let log_message: String = format!("[{}] \t[INFO] \tsearch_term: {}", Utc::now(), &search_term);
-    print_log_to_screen(display_logs, &log_message);
+    print_log_to_screen(&display_logs, &log_message);
     write_to_file(&log_file, log_message).unwrap();
     
     let log_message: String = format!("[{}] \t[INFO] \tcache_path: {:?}", Utc::now(), &cache_path);
-    print_log_to_screen(display_logs, &log_message);
+    print_log_to_screen(&display_logs, &log_message);
     write_to_file(&log_file, log_message).unwrap();
 
     let log_message: String = format!("[{}] \t[INFO] \tdisplay_logs: {:?}", Utc::now(), &display_logs);
-    print_log_to_screen(display_logs, &log_message);
+    print_log_to_screen(&display_logs, &log_message);
     write_to_file(&log_file, log_message).unwrap();
     
     // Check if search to be performed on single file or directory of files
     let dir_flag: bool = check_if_directory(file_or_directory);
     let log_message: String = format!("[{}] \t[DEBUG] \t{} - Directory Flag is {}", Utc::now(), file_or_directory, dir_flag);
-    print_log_to_screen(display_logs, &log_message);
+    print_log_to_screen(&display_logs, &log_message);
     write_to_file(&log_file, log_message).unwrap();
     
     // Create or open the Tantivy index
-    let index: tantivy::Index = match create_or_open_index(&index_path, &log_file, display_logs) {
+    let index: tantivy::Index = match create_or_open_index(&index_path, &log_file, &display_logs) {
         Ok(s) => {
             let log_message: String = format!("[{}] \t[INFO] \tIndex writer created successfully for {}", Utc::now(), index_path);
-            print_log_to_screen(display_logs, &log_message);
+            print_log_to_screen(&display_logs, &log_message);
             write_to_file(&log_file, log_message).unwrap();
             s
         },
@@ -239,10 +239,10 @@ pub fn search_term_in_file(file_or_directory: &str, search_term: &String, cache_
     };
 
     // Search for a term in the indexed PDFs
-    let matched_docs: HashMap<String, Vec<String>> = match search_keyword(&index, search_term) {
+    let matched_docs: HashMap<String, Vec<String>> = match search_keyword(&index, &search_term) {
         Ok(s) => {
             let log_message: String = format!("[{}] \t[INFO] \tRetrieved matched documents successfully for `{}` search term", Utc::now(), search_term);
-            print_log_to_screen(display_logs, &log_message);
+            print_log_to_screen(&display_logs, &log_message);
             write_to_file(&log_file, log_message).unwrap();
             s
         },
@@ -272,7 +272,7 @@ pub fn search_term_in_file(file_or_directory: &str, search_term: &String, cache_
                 let page_num: Vec<String> = matched_docs.get(doc_name).cloned().unwrap();
 
                 // Extract metadata information from matched PDF file
-                let metadata: PDFMetadata = match run_analysis(doc_name, &page_num, search_term) {
+                let metadata: PDFMetadata = match run_analysis(doc_name, &page_num, &search_term) {
                     Ok(s) => s,
                     Err(err) => {
                         eprintln!("{}", err);
@@ -282,7 +282,7 @@ pub fn search_term_in_file(file_or_directory: &str, search_term: &String, cache_
                 };
 
                 let log_message: String = format!("[{}] \t[INFO] \t{}: Metadata extracted successfully", Utc::now(), &doc_name);
-                print_log_to_screen(display_logs, &log_message);
+                print_log_to_screen(&display_logs, &log_message);
                 write_to_file(&log_file, log_message).unwrap();
                 
                 metadata_vec.push(metadata);
@@ -298,7 +298,7 @@ pub fn search_term_in_file(file_or_directory: &str, search_term: &String, cache_
                 let page_num: Vec<String> = matched_docs.get(doc_name).cloned().unwrap();
 
                 // Extract metadata information from given PDF file
-                let metadata: PDFMetadata = match run_analysis(doc_name, &page_num, search_term) {
+                let metadata: PDFMetadata = match run_analysis(doc_name, &page_num, &search_term) {
                     Ok(s) => s,
                     Err(err) => {
                         eprintln!("{}", err);
@@ -308,7 +308,7 @@ pub fn search_term_in_file(file_or_directory: &str, search_term: &String, cache_
                 };
 
                 let log_message: String = format!("[{}] \t[INFO] \t{}: Metadata extracted successfully", Utc::now(), &doc_name);
-                print_log_to_screen(display_logs, &log_message);
+                print_log_to_screen(&display_logs, &log_message);
                 write_to_file(&log_file, log_message).unwrap();
 
                 metadata_vec.push(metadata);

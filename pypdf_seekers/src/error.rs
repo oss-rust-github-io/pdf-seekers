@@ -10,31 +10,39 @@ use chrono::prelude::Utc;
 #[derive(Debug)]
 /// Defines the file I/O error types
 pub enum FileOperationsError {
-    /// Unable to open a file
-    FileOpenError(String, std::io::Error),
-    /// Unable to read contents from a file
-    FileReadError(String, pdf_extract::OutputError),
     /// Unable to open PDF file
     PDFFileReadError(String, lopdf::Error),
     /// Unable to read contents from PDF file
     PDFFileTextExtractionError(String, u32, lopdf::Error),
     /// Unable to read contents from directory
     DirectoryReadError(String, std::io::Error),
+    /// Unable to read the current working directory
+    CurrentWorkingDirectoryReadError(std::io::Error),
+    /// Unable to create directory
+    DirectoryCreateError(String, std::io::Error),
+    /// Unable to open file
+    FileOpenError(String, std::io::Error),
+    /// Unable to write to file
+    FileWriteError(String, std::io::Error)
 }
 
 impl Display for FileOperationsError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            FileOperationsError::FileOpenError(file_name, err) => 
-                write!(f, "[{}] [ERROR] [FO0001_FileOpenError] {}: {}", Utc::now(), file_name, err),
-            FileOperationsError::FileReadError(file_name, err) => 
-                write!(f, "[{}] [ERROR] [FO0002_FileReadError] {}: {}", Utc::now(), file_name, err),
             FileOperationsError::PDFFileReadError(file_name, err) => 
                 write!(f, "[{}] [ERROR] [FO0003_PDFFileReadError] {}: {}", Utc::now(), file_name, err),
             FileOperationsError::PDFFileTextExtractionError(file_name, page_num, err) => 
                 write!(f, "[{}] [ERROR] [FO0004_PDFFileTextExtractionError] {}: Page-{} {}", Utc::now(), file_name, page_num, err),
             FileOperationsError::DirectoryReadError(dir_path, err) => 
                 write!(f, "[{}] [ERROR] [FO0005_DirectoryReadError] {}: {}", Utc::now(), dir_path, err),
+            FileOperationsError::CurrentWorkingDirectoryReadError(err) => 
+                write!(f, "[{}] [ERROR] [FO0006_CurrentWorkingDirectoryReadError] {}", Utc::now(), err),
+            FileOperationsError::DirectoryCreateError(dir_path, err) => 
+                write!(f, "[{}] [ERROR] [FO0007_DirectoryCreateError] {}: {}", Utc::now(), dir_path, err),
+            FileOperationsError::FileOpenError(log_file, err) => 
+                write!(f, "[{}] [ERROR] [FO0008_FileOpenError] {}: {}", Utc::now(), log_file, err),
+            FileOperationsError::FileWriteError(log_file, err) => 
+                write!(f, "[{}] [ERROR] [FO0009_FileWriteError] {}: {}", Utc::now(), log_file, err),
         }
     }
 }
