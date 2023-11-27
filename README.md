@@ -9,12 +9,12 @@
 
 Simple parser and information extractor from PDF documents based on keyword search functionality (powered by Rust)
 
-<p align="center">
+<p align="left">
 <img
-  src="/logo/pdf_seeker.png"
+  src="/logo/pdf_seeker.jpg"
   title="PDF-Seeker"
-  width="25%"
-  height="25%">
+  width="10%"
+  height="10%">
 </p>
 
 ## Key Features:
