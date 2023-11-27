@@ -12,14 +12,20 @@ struct Arguments {
     #[clap(short, long)]
     /// Provide single PDF file to be searched, or directory path containing multiple PDF files
     file_or_directory: String,
-    
-    #[clap(short, long)]
-    /// Directory path where all indexed files will be stored
-    index_path: String,
 
     #[clap(short, long)]
     /// Keyword to be searched in PDF files (only required when action=Searching)
     search_term: Option<String>,
+    
+    #[clap(long)]
+    /// Directory path where all indexed files, log files, and tracker files will be stored
+    /// If no value is provided, then this will be created in current working directory
+    cache_path: Option<String>,
+
+    #[clap(long)]
+    /// Flag to indicate whether to display processing logs on screen or not
+    /// Default value is set to False
+    display_logs: Option<bool>,
 }
 
 fn validate_arguments(args: &Arguments) -> String {
@@ -29,10 +35,6 @@ fn validate_arguments(args: &Arguments) -> String {
 
     if args.file_or_directory.trim().len() == 0 {
         panic!("file_or_directory cannot contain empty values");
-    }
-
-    if args.index_path.trim().len() == 0 {
-        panic!("index_path cannot contain empty values");
     }
 
     let mut search_term: String = String::from("");
@@ -61,12 +63,12 @@ fn main() {
 
     // Indexing the PDF files
     if &args.action == "index" {
-        indexing_contents(&args.file_or_directory, &args.index_path).unwrap();
+        indexing_contents(&args.file_or_directory, args.cache_path.clone(), args.display_logs).unwrap();
     }
 
     // Search for provided keyword
     if &args.action == "search" {
-        let metadata_vec = search_term_in_file(&args.file_or_directory, &args.index_path, &search_term).unwrap();
+        let metadata_vec = search_term_in_file(&args.file_or_directory, search_term, args.cache_path.clone(), args.display_logs).unwrap();
 
         for element in metadata_vec {
             element.show();
