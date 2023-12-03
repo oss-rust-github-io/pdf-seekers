@@ -14,5 +14,7 @@ license = "MIT OR Apache-2.0"
 chrono = "0.4.17"
 clap = { version = "4.4.8", features = ["derive"] }
 itertools = "0.12.0"
+log = "0.4"
+log4rs = "1.2"
 lopdf = { version = "0.31.0", features = ["pom", "pom_parser"] }
 tantivy = "0.21.1"
