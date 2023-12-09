@@ -5,6 +5,7 @@
 //! - Defines the supporting functions for capturing metadata information from matched PDF files
 
 use crate::error::{FileOperationsError, SearchingError};
+use log::{debug, trace};
 use lopdf::Document as lopdoc;
 use std::collections::HashMap;
 use tantivy::collector::TopDocs;
@@ -52,8 +53,11 @@ pub fn search_keyword(index: &tantivy::Index, query_str: &str) -> Result<HashMap
         Err(e) => return Err(SearchingError::IndexReaderCreateError(e))
     };
 
+    debug!(target:"other_logging", "Index reader object created successfully.");
+
     // Create the index searcher object
     let searcher = indexer.searcher();
+    debug!(target:"other_logging", "Index searcher object created successfully.");
 
     // Define the index field for running the search on
     let content_field = match index.schema().get_field("content") {
@@ -61,18 +65,21 @@ pub fn search_keyword(index: &tantivy::Index, query_str: &str) -> Result<HashMap
         Err(e) => return Err(SearchingError::IndexFieldNotFound(String::from("content"), e))
     };
     let query_parser = QueryParser::for_index(&index, vec![content_field]);
+    debug!(target:"other_logging", "Query parser created successfully for `content` field.");
 
     // Parse the query string
     let query = match query_parser.parse_query(query_str) {
         Ok(s) => s,
         Err(e) => return Err(SearchingError::QueryParserError(e))
     };
+    debug!(target:"other_logging", "Query parsing completed successfully for query string -> {}", &query_str);
 
     // Search the index
     let top_docs = match searcher.search(&query, &TopDocs::with_limit(10)) {
         Ok(s) => s,
         Err(e) => return Err(SearchingError::KeywordSearchError(e))
     };
+    debug!(target:"other_logging", "Top 10 matched documents retrived from search.");
 
     // Capture search results
     let mut doc_page_map: HashMap<String, Vec<String>> = HashMap::new();
@@ -126,6 +133,8 @@ pub fn run_analysis(file: &String, page_num: &Vec<String>, keyword: &str) -> Res
         Ok(s) => s,
         Err(e) => return Err(FileOperationsError::PDFFileReadError(file.clone(), e))
     };
+
+    trace!(target:"other_logging", "PDF file `{}` with {} pages read successfully.", &file, &doc.get_pages().len());
 
     // Get all pages in the PDF file
     let pages = doc.get_pages();
