@@ -2,8 +2,8 @@ use pdf_seekers;
 
 #[test]
 fn valid_pdf_file_check() {
-    let pdf_file: &str = "data/yolo.pdf";
-    match pdf_seekers::file_operations::read_pdf(pdf_file) {
+    let pdf_file: String = String::from("data/yolo.pdf");
+    match pdf_seekers::file_operations::read_pdf(&pdf_file, None) {
         Ok(_) => assert!(true),
         Err(_) => assert!(false, "Process should be able to read the file successfully")
     };
@@ -11,8 +11,8 @@ fn valid_pdf_file_check() {
 
 #[test]
 fn invalid_directory_check() {
-    let directory: &str = "invalid_dir";
-    match pdf_seekers::file_operations::get_files_in_directory(directory) {
+    let directory: String = String::from("invalid_dir");
+    match pdf_seekers::file_operations::get_files_in_directory(&directory, None) {
         Ok(_) => assert!(false, "Process should fail with FileOperationsError::DirectoryReadError"),
         Err(e) => match e {
             pdf_seekers::error::FileOperationsError::DirectoryReadError(_, _) => assert!(true),
@@ -23,8 +23,8 @@ fn invalid_directory_check() {
 
 #[test]
 fn valid_directory_check() {
-    let directory: &str = "data";
-    match pdf_seekers::file_operations::get_files_in_directory(directory) {
+    let directory: String = String::from("data");
+    match pdf_seekers::file_operations::get_files_in_directory(&directory, None) {
         Ok(_) => assert!(true),
         Err(_) => assert!(false, "Process should be able to read the directory contents successfully")
     };

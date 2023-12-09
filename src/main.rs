@@ -63,12 +63,21 @@ fn main() {
 
     // Indexing the PDF files
     if &args.action == "index" {
-        indexing_contents(&args.file_or_directory, args.cache_path.clone(), args.log_level.clone()).unwrap();
+        indexing_contents(
+            args.file_or_directory.clone(), 
+            args.cache_path.clone(), 
+            args.log_level.clone()
+        ).unwrap();
     }
 
     // Search for provided keyword
     if &args.action == "search" {
-        let metadata_vec = search_term_in_file(&args.file_or_directory, search_term, args.cache_path.clone(), args.log_level.clone()).unwrap();
+        let metadata_vec = search_term_in_file(
+            args.file_or_directory, 
+            search_term, 
+            args.cache_path, 
+            args.log_level
+        ).unwrap();
 
         for element in metadata_vec {
             element.show();

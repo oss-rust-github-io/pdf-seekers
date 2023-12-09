@@ -23,7 +23,9 @@ pub enum FileOperationsError {
     /// Unable to open file
     FileOpenError(String, std::io::Error),
     /// Unable to write to file
-    FileWriteError(String, std::io::Error)
+    FileWriteError(String, std::io::Error),
+    /// Unable to read file
+    FileReadError(String, std::io::Error),
 }
 
 impl Display for FileOperationsError {
@@ -43,6 +45,8 @@ impl Display for FileOperationsError {
                 write!(f, "[FO0006_FileOpenError] {}: {}", log_file, err),
             FileOperationsError::FileWriteError(log_file, err) => 
                 write!(f, "[FO0007_FileWriteError] {}: {}", log_file, err),
+            FileOperationsError::FileReadError(log_file, err) => 
+                write!(f, "[FO0008_FileReadError] {}: {}", log_file, err),
         }
     }
 }

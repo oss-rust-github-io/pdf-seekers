@@ -16,8 +16,6 @@ const OVERALL_MEMORY_ARENA_IN_BYTES: usize = 1 << 30; // 1GiB
 /// 
 /// ## Input Parameters
 /// - `index_path` defines the input path for storing the indexed files
-/// - `log_file` defines the input path for storing the log files
-/// - `display_logs` defines the flag to indicate whether to display processing logs on screen or not
 /// 
 /// ## Returns
 /// - Tantivy index for performing keyword search on PDF files
@@ -86,6 +84,7 @@ pub fn create_or_open_index(index_path: &str) -> Result<Index, IndexingError> {
 /// 
 /// ## Input Parameters
 /// - `pdf_file` contains the PDF file to be parsed and indexed
+/// - `pdf_page_num` contains the matched page numbers in PDF file containing the search term
 /// - `pdf_text` contains the extracted text from PDF file for indexing
 /// - `index` contains the Tantivy index for parsing and indexing
 /// 
@@ -146,18 +145,17 @@ pub fn parse_and_index_pdf(pdf_file: &str, pdf_page_num: Vec<u32>, pdf_text: Vec
 /// ## Input Parameters
 /// - `file_path` defines the input path for single PDF file or directory containing multiple PDF files
 /// - `index_path` defines the input path for storing the indexed files
-/// - `log_file` defines the input path for storing the log files
-/// - `display_logs` defines the flag to indicate whether to display processing logs on screen or not
+/// - `track_fail_file` defines the file path for storing failed processing file names
 /// 
 /// ## Returns
 /// - None
-pub fn file_indexing(file_path: &str, index_path: &str) {
+pub fn file_indexing(file_path: &String, index_path: &String, track_fail_file: Option<&String>) {
     // Read text in PDF file
-    let (pdf_page_nums, pdf_texts) = match read_pdf(file_path) {
+    let (pdf_page_nums, pdf_texts) = match read_pdf(file_path, track_fail_file) {
         Ok(s) => s,
         Err(err) => {
             error!(target:"other_logging", "{}", err);
-            std::process::exit(1);
+            return;
         }
     };
 

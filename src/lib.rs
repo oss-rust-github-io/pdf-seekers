@@ -31,7 +31,7 @@ use log::{info, debug, error, trace};
 /// - `file_or_directory` defines the input path for single PDF file or directory containing multiple PDF files
 /// - `cache_path` defines the input path for storing the indexed files, log files, and tracker files
 /// - `log_level` defines the verbosity level for logs
-pub fn indexing_contents(file_or_directory: &str, cache_path: Option<String>, log_level: Option<String>) -> Result<(), std::io::Error> {
+pub fn indexing_contents(file_or_directory: String, cache_path: Option<String>, log_level: Option<String>) -> Result<(), std::io::Error> {
     // Create the directory for storing cache files (if doesn't exist)
     let cache_dir: String = match create_cache_dir_if_not_exists(&cache_path) {
         Ok(s) => s,
@@ -40,9 +40,21 @@ pub fn indexing_contents(file_or_directory: &str, cache_path: Option<String>, lo
         }
     };
 
-    // Define file paths for indexing and logging
+    // Define file paths for indexing, tracking and logging
     let index_path: String = format!("{}/index_dir", &cache_dir);
+    let track_path: String = format!("{}/track_dir", &cache_dir);
+    let track_success_file: String = format!("{}/_SUCCESS.txt", &track_path);
+    let track_fail_file: String = format!("{}/_FAIL.txt", &track_path);
     let log_file: String = format!("{}/logs_dir/pdf_seekers_index-{}.log", &cache_dir, Utc::now().date_naive());
+
+    // Create the directory for storing tracker files (if doesn't exist)
+    match create_track_dir_if_not_exists(track_path) {
+        Ok(_) => {},
+        Err(err) => {
+            error!(target:"other_logging", "{}", err);
+            std::process::exit(1);
+        }
+    };
 
     // Setup log4rs handle
     let _log_handle = match logging::set_logging(&log_file, &log_level) {
@@ -59,8 +71,8 @@ pub fn indexing_contents(file_or_directory: &str, cache_path: Option<String>, lo
     debug!(target:"other_logging", "log_level: {:?}", &log_level);
 
     // Check if indexing to be performed on single file or directory of files
-    let dir_flag: bool = check_if_directory(file_or_directory);
-    trace!(target:"other_logging", "dir_flag: {}", dir_flag);
+    let dir_flag: bool = check_if_directory(&file_or_directory);
+    trace!(target:"other_logging", "dir_flag: {}", &dir_flag);
 
     if dir_flag {
         info!(target:"info_logging", "Received `{}` which is directory.", &file_or_directory);
@@ -80,30 +92,68 @@ pub fn indexing_contents(file_or_directory: &str, cache_path: Option<String>, lo
     }
 
     if dir_flag {
+        // Create tracking files (if does not exists)
+        match std::path::Path::new(&track_success_file).exists() {
+            true => {},
+            false => {
+                write_to_file(&track_success_file, &String::from("")).unwrap();
+            }
+        }
+
+        write_to_file(&track_fail_file, &String::from("")).unwrap();
+
         // Get all file names in directory
-        let files_list: Vec<String> = match get_files_in_directory(file_or_directory) {
+        let files_list: Vec<String> = match get_files_in_directory(&file_or_directory, Some(&track_fail_file)) {
             Ok(s) => s,
             Err(err) => {
-                error!(target:"other_logging", "{}", &err);
+                error!(target:"other_logging", "{}", err);
                 std::process::exit(1);
             }
         };
 
-        info!(target:"info_logging", "Read all file names successfully in directory `{}`", file_or_directory);
+        info!(target:"info_logging", "Read all file names successfully in directory `{}`", &file_or_directory);
         trace!(target:"other_logging", "File names read from `{}` directory -> {:?}", &file_or_directory, &files_list);
-        
-        // Run indexing on all files in directory
+
+        // Get all processed file names (from prior indexing processes)
+        let processed_file: Vec<String> = match read_from_file(&track_success_file) {
+            Ok(s) => s,
+            Err(err) => {
+                error!(target:"other_logging", "{}", err);
+                std::process::exit(1);
+            }
+        };
+
+        info!(target:"info_logging", "Read all processed file names successfully in `{}`", &track_success_file);
+        trace!(target:"other_logging", "Processed file names read from `{}` file -> {:?}", &track_success_file, &processed_file);
+
+        // Run indexing on new files in directory
         for file in &files_list {
-            info!(target:"info_logging", "{} - Indexing started...", file);
-            file_indexing(&file, &index_path[..]);
-            info!(target:"info_logging", "{} - Indexing completed successfully.", file);
+            if !processed_file.contains(&file){
+                info!(target:"info_logging", "{} - Indexing started...", &file);
+                file_indexing(&file, &index_path, Some(&track_fail_file));
+                info!(target:"info_logging", "{} - Indexing completed successfully.", &file);
+                write_to_file(&track_success_file, &file).unwrap();
+            }
+            else {
+                info!(target:"info_logging", "{} - Index information already captured.", &file);
+            }
         }
+
+        // Get all errored out file names
+        let error_files: Vec<String> = match read_from_file(&track_fail_file) {
+            Ok(s) => s,
+            Err(err) => {
+                error!(target:"other_logging", "{}", err);
+                std::process::exit(1);
+            }
+        };
+        debug!("Errored out files during indexing process: {:?}", error_files);
     }
     else {
         // Run indexing on single file
         info!(target:"info_logging", "{} - Indexing started...", file_or_directory);
-        file_indexing(file_or_directory, &index_path[..]);
-        info!(target:"info_logging", "{} - Indexing completed successfully.", file_or_directory);
+        file_indexing(&file_or_directory, &index_path, Some(&track_fail_file));
+        info!(target:"info_logging", "{} - Indexing completed successfully.", &file_or_directory);
     }
 
     Ok(())
@@ -116,7 +166,7 @@ pub fn indexing_contents(file_or_directory: &str, cache_path: Option<String>, lo
 /// - `search_term` defines the keyword to be searched in PDF documents
 /// - `cache_path` defines the input path for storing the indexed files, log files, and tracker files
 /// - `log_level` defines the verbosity level for logs
-pub fn search_term_in_file(file_or_directory: &str, search_term: String, cache_path: Option<String>, log_level: Option<String>) -> Result<Vec<PDFMetadata>, std::io::Error> {
+pub fn search_term_in_file(file_or_directory: String, search_term: String, cache_path: Option<String>, log_level: Option<String>) -> Result<Vec<PDFMetadata>, std::io::Error> {
     // Create the directory for storing cache files (if doesn't exist)
     let cache_dir: String = match create_cache_dir_if_not_exists(&cache_path) {
         Ok(s) => s,
@@ -125,8 +175,9 @@ pub fn search_term_in_file(file_or_directory: &str, search_term: String, cache_p
         }
     };
 
+    // Define file paths for indexing and logging
     let index_path: String = format!("{}/index_dir", &cache_dir);
-    let log_file: String = format!("{}/logs_dir/pdf_seekers_search-{}.log", &cache_dir, Utc::now().date_naive());
+    let log_file: String = format!("{}/logs_dir/pdf_seekers_index-{}.log", &cache_dir, Utc::now().date_naive());
 
     // Setup log4rs handle
     let _log_handle = match logging::set_logging(&log_file, &log_level) {
@@ -144,8 +195,8 @@ pub fn search_term_in_file(file_or_directory: &str, search_term: String, cache_p
     debug!(target:"other_logging", "log_level: {:?}", &log_level);
 
     // Check if search to be performed on single file or directory of files
-    let dir_flag: bool = check_if_directory(file_or_directory);
-    trace!(target:"other_logging", "dir_flag: {}", dir_flag);
+    let dir_flag: bool = check_if_directory(&file_or_directory);
+    trace!(target:"other_logging", "dir_flag: {}", &dir_flag);
 
     if dir_flag {
         info!(target:"info_logging", "Received `{}` which is directory.", &file_or_directory);
@@ -173,12 +224,12 @@ pub fn search_term_in_file(file_or_directory: &str, search_term: String, cache_p
         }
     };
 
-    info!(target:"info_logging", "Index writer created successfully for `{}`.", index_path);
+    info!(target:"info_logging", "Index writer created successfully for `{}`.", &index_path);
 
     // Search for a term in the indexed PDFs
     let matched_docs: HashMap<String, Vec<String>> = match search_keyword(&index, &search_term) {
         Ok(s) => {
-            info!(target:"info_logging", "Retrieved matched documents successfully for `{}` search term.", search_term);
+            info!(target:"info_logging", "Retrieved matched documents successfully for `{}` search term.", &search_term);
             s
         },
         Err(err) => {
@@ -191,7 +242,7 @@ pub fn search_term_in_file(file_or_directory: &str, search_term: String, cache_p
     let mut metadata_vec: Vec<PDFMetadata> = Vec::new();
     if dir_flag {
         // Get all file names in directory
-        let files_list: Vec<String> = match get_files_in_directory(file_or_directory) {
+        let files_list: Vec<String> = match get_files_in_directory(&file_or_directory, None) {
             Ok(s) => s,
             Err(err) => {
                 error!(target:"other_logging", "{}", err);
@@ -199,7 +250,7 @@ pub fn search_term_in_file(file_or_directory: &str, search_term: String, cache_p
             }
         };
 
-        info!(target:"info_logging", "Read all file names successfully in directory `{}`", file_or_directory);
+        info!(target:"info_logging", "Read all file names successfully in directory `{}`", &file_or_directory);
         trace!(target:"other_logging", "File names read from `{}` directory -> {:?}", &file_or_directory, &files_list);
         
         // Traverse the matched PDF documents (containing the search term) to display the metadata information
@@ -227,7 +278,7 @@ pub fn search_term_in_file(file_or_directory: &str, search_term: String, cache_p
 
         // Traverse the matched PDF documents (containing the search term) to display the metadata information
         for doc_name in matched_docs.keys().sorted() {
-            if doc_name == file_or_directory {
+            if doc_name == &file_or_directory {
                 let page_num: Vec<String> = matched_docs.get(doc_name).cloned().unwrap();
 
                 // Extract metadata information from given PDF file
