@@ -3,7 +3,7 @@
 //! - Defines the supporting functions for parsing and indexing PDF files
 //! - Creates the directory for storing indexed files, if it doesn't exist
 
-use chrono::prelude::Utc;
+use log::{info, debug, error, trace};
 use crate::file_operations::*;
 use crate::error::IndexingError;
 use tantivy::{Index, IndexWriter, Document};
@@ -16,18 +16,14 @@ const OVERALL_MEMORY_ARENA_IN_BYTES: usize = 1 << 30; // 1GiB
 /// 
 /// ## Input Parameters
 /// - `index_path` defines the input path for storing the indexed files
-/// - `log_file` defines the input path for storing the log files
-/// - `display_logs` defines the flag to indicate whether to display processing logs on screen or not
 /// 
 /// ## Returns
 /// - Tantivy index for performing keyword search on PDF files
-pub fn create_or_open_index(index_path: &str, log_file: &String, display_logs: &Option<bool>) -> Result<Index, IndexingError> {
+pub fn create_or_open_index(index_path: &str) -> Result<Index, IndexingError> {
     // Create the directory for storing indexed files (if doesn't exist)
     match std::fs::create_dir_all(index_path) {
         Ok(_) => {
-            let log_message: String = format!("[{}] \t[DEBUG] \tIndex directory created successfully at {}", Utc::now(), index_path);
-            print_log_to_screen(display_logs, &log_message);
-            write_to_file(&log_file, log_message).unwrap();
+            info!(target:"info_logging", "Index directory created successfully at `{}`.", &index_path);
         },
         Err(e) => return Err(IndexingError::IndexDirectoryCreateError(index_path.to_string(), e))
     };
@@ -39,23 +35,20 @@ pub fn create_or_open_index(index_path: &str, log_file: &String, display_logs: &
     };
 
     let dir_check: bool = dir_content.count() == 0;
-
-    let log_message: String = format!("[{}] \t[DEBUG] \t{} - Is Index directory empty? {}", Utc::now(), index_path, dir_check);
-    print_log_to_screen(display_logs, &log_message);
-    write_to_file(&log_file, log_message).unwrap();
+    debug!(target:"other_logging", "Is index directory `{}` empty? -> {}", index_path, dir_check);
 
     let index: Index = if !dir_check {
         // Open the index directory to build the Tantivy index (if directory is not empty)
         match Index::open_in_dir(index_path) {
             Ok(s) => {
-                let log_message: String = format!("[{}] \t[DEBUG] \tRead contents successfully of Index directory {}", Utc::now(), index_path);
-                print_log_to_screen(display_logs, &log_message);
-                write_to_file(&log_file, log_message).unwrap();
+                info!(target:"info_logging", "{} - Directory content read successfully.", &index_path);
                 s
             },
             Err(e) => return Err(IndexingError::IndexDirectoryOpenError(index_path.to_string(), e))
         }
     } else {
+        info!(target:"info_logging", "{} - Directory is empty.", &index_path);
+
         let mut schema_builder: SchemaBuilder = SchemaBuilder::new();
 
         // Add fields to the schema
@@ -91,6 +84,7 @@ pub fn create_or_open_index(index_path: &str, log_file: &String, display_logs: &
 /// 
 /// ## Input Parameters
 /// - `pdf_file` contains the PDF file to be parsed and indexed
+/// - `pdf_page_num` contains the matched page numbers in PDF file containing the search term
 /// - `pdf_text` contains the extracted text from PDF file for indexing
 /// - `index` contains the Tantivy index for parsing and indexing
 /// 
@@ -151,48 +145,39 @@ pub fn parse_and_index_pdf(pdf_file: &str, pdf_page_num: Vec<u32>, pdf_text: Vec
 /// ## Input Parameters
 /// - `file_path` defines the input path for single PDF file or directory containing multiple PDF files
 /// - `index_path` defines the input path for storing the indexed files
-/// - `log_file` defines the input path for storing the log files
-/// - `display_logs` defines the flag to indicate whether to display processing logs on screen or not
+/// - `track_fail_file` defines the file path for storing failed processing file names
 /// 
 /// ## Returns
 /// - None
-pub fn file_indexing(file_path: &str, index_path: &str, log_file: &String, display_logs: &Option<bool>) {
+pub fn file_indexing(file_path: &String, index_path: &String, track_fail_file: Option<&String>) {
     // Read text in PDF file
-    let (pdf_page_nums, pdf_texts) = match read_pdf(file_path) {
-        Ok(s) => {
-            let log_message: String = format!("[{}] \t[INFO] \t{} - File read successfully", Utc::now(), file_path);
-            print_log_to_screen(display_logs, &log_message);
-            write_to_file(&log_file, log_message).unwrap();
-            s
-        },
+    let (pdf_page_nums, pdf_texts) = match read_pdf(file_path, track_fail_file) {
+        Ok(s) => s,
         Err(err) => {
-            eprintln!("{}", err);
-            write_to_file(&log_file, err.to_string()).unwrap();
+            error!(target:"other_logging", "{}", err);
+            return;
+        }
+    };
+
+    info!(target:"info_logging", "{} - File read successfully.", &file_path);
+    trace!(target:"other_logging", "`{}` -> pdf_page_nums: {:?}", &file_path, &pdf_page_nums);
+
+    // Create or open the Tantivy index
+    let index: tantivy::Index = match create_or_open_index(index_path) {
+        Ok(s) => s,
+        Err(err) => {
+            error!(target:"other_logging", "{}", err);
             std::process::exit(1);
         }
     };
 
-    // Create or open the Tantivy index
-    let index: tantivy::Index = match create_or_open_index(index_path, log_file, display_logs) {
-        Ok(s) => {
-            let log_message: String = format!("[{}] \t[INFO] \tIndex writer created successfully for {}", Utc::now(), index_path);
-            print_log_to_screen(display_logs, &log_message);
-            write_to_file(&log_file, log_message).unwrap();
-            s
-        },
-        Err(err) => {
-            eprintln!("{}", err);
-            write_to_file(&log_file, err.to_string()).unwrap();
-            std::process::exit(1);
-        }
-    };
+    info!(target:"info_logging", "Index writer created successfully for `{}` directory.", &index_path);
 
     // Parse PDF and index content
     match parse_and_index_pdf(file_path, pdf_page_nums, pdf_texts, &index) {
         Ok(_) => {},
         Err(err) => {
-            eprintln!("{}", err);
-            write_to_file(&log_file, err.to_string()).unwrap();
+            error!(target:"other_logging", "{}", err);
             std::process::exit(1);
         }
     };

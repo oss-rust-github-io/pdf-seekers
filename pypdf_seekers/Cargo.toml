@@ -1,6 +1,6 @@
 [package]
 name = "pdf_seekers"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2021"
 authors = ["Tapas Das <dlaststark@gmail.com>"]
 description = "Simple parser and information extractor from PDF documents based on keyword search functionality (powered by Rust)"
@@ -17,6 +17,8 @@ crate-type = ["cdylib"]
 chrono = "0.4.17"
 clap = { version = "4.4.8", features = ["derive"] }
 itertools = "0.12.0"
+log = "0.4"
+log4rs = "1.2"
 lopdf = { version = "0.31.0", features = ["pom", "pom_parser"] }
 pyo3 = { version = "0.20.0", features = ["extension-module"] }
 tantivy = "0.21.1"

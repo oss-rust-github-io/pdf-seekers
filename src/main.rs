@@ -17,15 +17,15 @@ struct Arguments {
     /// Keyword to be searched in PDF files (only required when action=Searching)
     search_term: Option<String>,
     
-    #[clap(long)]
+    #[clap(short, long)]
     /// Directory path where all indexed files, log files, and tracker files will be stored
-    /// If no value is provided, then this will be created in current working directory
+    /// If no value is provided or if value is set to None, then this will be created in current working directory
     cache_path: Option<String>,
 
-    #[clap(long)]
-    /// Flag to indicate whether to display processing logs on screen or not
-    /// Default value is set to False
-    display_logs: Option<bool>,
+    #[clap(short, long)]
+    /// Flag to indicate the verbosity level for logs
+    /// Default value is set to Info. Allowed values are INFO, WARN, DEBUG, ERROR, TRACE, OFF.
+    log_level: Option<String>,
 }
 
 fn validate_arguments(args: &Arguments) -> String {
@@ -63,12 +63,21 @@ fn main() {
 
     // Indexing the PDF files
     if &args.action == "index" {
-        indexing_contents(&args.file_or_directory, args.cache_path.clone(), args.display_logs).unwrap();
+        indexing_contents(
+            args.file_or_directory.clone(), 
+            args.cache_path.clone(), 
+            args.log_level.clone()
+        ).unwrap();
     }
 
     // Search for provided keyword
     if &args.action == "search" {
-        let metadata_vec = search_term_in_file(&args.file_or_directory, search_term, args.cache_path.clone(), args.display_logs).unwrap();
+        let metadata_vec = search_term_in_file(
+            args.file_or_directory, 
+            search_term, 
+            args.cache_path, 
+            args.log_level
+        ).unwrap();
 
         for element in metadata_vec {
             element.show();
